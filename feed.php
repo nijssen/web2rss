@@ -19,17 +19,23 @@ $rss->addChild('link', $_GET['url']);
 //$rss->addChild('language', 'en-us');
 
 // find container element
+//$tmp = array();
 foreach ($doc->find($_GET['containersel']) as $container) {
     $item = $rss->addChild('item');
     
+    $guidstr = "";
+    
     // find title
     $title = $container->find($_GET['titlesel'], 0);
-    $item->addChild('title', $title != null ? htmlentities(strip_tags($title->innertext)) : "No title");
+    $titlestr = $title != null ? htmlentities(strip_tags($title->innertext)) : "No title";
+    $item->addChild('title', $titlestr);
+    $guidstr .= $titlestr;
     
     // find link
     if ($title) {
         $link = $title->hasAttribute("href") ? $title : $title->find("a", 0);
         $actualurl = convertRelativeToAbsolutePath($_GET['url'], $link->getAttribute("href") ?? $_GET['url']);
+        $guidstr .= $actualurl;
         $item->addChild('link', $actualurl);
         $title->remove();
         $link->remove();
@@ -42,6 +48,7 @@ foreach ($doc->find($_GET['containersel']) as $container) {
     if ($date) {
         $dateval = date_create_from_format($_GET['datefmt'], strip_tags($date->innertext));
         $date_rfc = gmdate(DATE_RFC2822, $dateval->getTimestamp());
+        $guidstr .= $date_rfc;
         $item->addChild('pubDate', $date_rfc);
         $date->remove();
     }
@@ -65,16 +72,22 @@ foreach ($doc->find($_GET['containersel']) as $container) {
         $contentstr = htmlentities($container->innertext);
     }
     $item->addChild('description', $contentstr);
+    //$guidstr .= $contentstr;
     
     // create guid
+    //$guid = $item->addChild('guid', sha1($guidstr));
     $guid = $item->addChild('guid', sha1($item->asXML()));
     $guid->addAttribute('isPermaLink', 'false');
+    //$tmp[] = $guidstr;
 }
 
 
 header('Content-Type: text/xml; charset=utf-8', true);
 echo $rss->asXML();
 
+//echo '<!--';
+//var_dump($tmp);
+//echo '-->';
 
 function convertRelativeToAbsolutePath($currentUrl, $relativePath) {
 	// Converts a relative path to an absolute path given the retrieve URL and a relative path, e.g.
