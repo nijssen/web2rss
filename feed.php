@@ -40,7 +40,8 @@ foreach ($doc->find($_GET['containersel']) as $container) {
     // find date
     $date = $container->find($_GET['datesel'], 0);
     if ($date) {
-        $date_rfc = gmdate(DATE_RFC2822, date_create_from_format($_GET['datefmt'], $date->text));
+        $dateval = date_create_from_format($_GET['datefmt'], strip_tags($date->innertext));
+        $date_rfc = gmdate(DATE_RFC2822, $dateval->getTimestamp());
         $item->addChild('pubDate', $date_rfc);
         $date->remove();
     }
@@ -56,14 +57,14 @@ foreach ($doc->find($_GET['containersel']) as $container) {
     
     // is the content the remainder or a specific thing?
     $contentstr = "";
-    if (isset($_GET['contentsel'])) {
+    if (isset($_GET['contentsel']) && !empty($_GET['contentsel'])) {
         foreach ($container->find($_GET['contentsel']) as $el) {
             $contentstr .= htmlentities($el->outertext);
         }
     } else {
         $contentstr = htmlentities($container->innertext);
     }
-    $item->addChild('description', "<![CDATA[$contentstr]]>");
+    $item->addChild('description', $contentstr);
     
     // create guid
     $guid = $item->addChild('guid', sha1($item->asXML()));
