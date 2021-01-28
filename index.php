@@ -13,6 +13,8 @@ include 'functions.php';
 <form method="get" id="form">
 <label>URL: <input type="text" name="url" value="<?= htmlspecialchars($_GET['url'] ?? '') ?>"></label><br>
 <label>Container: <input type="text" name="containersel" value="<?= htmlspecialchars($_GET['containersel'] ?? '') ?>" class="selector"></label><br>
+<fieldset>
+<legend>Relative to container</legend>
 <label>Title: <input type="text" name="titlesel" value="<?= htmlspecialchars($_GET['titlesel'] ?? '') ?>" class="selector"></label><br>
 <label>Date: <input type="text" name="datesel" value="<?= htmlspecialchars($_GET['datesel'] ?? '') ?>" class="selector"></label>&nbsp;&nbsp;
 <label>Date format: <input type="text" name="datefmt" value="<?= htmlspecialchars($_GET['datefmt'] ?? '') ?>"></label><br>
@@ -23,6 +25,7 @@ include 'functions.php';
 <?php }} ?>
 </div>
 <input type="button" id="addremovesel" value="add a removal selector"><br>
+</fieldset>
 <br>
 <input type="submit" value="Apply"><br>
 <textarea rows="2" cols="80" readonly><?= htmlspecialchars(absurl("feed.php") . '?' . $_SERVER['QUERY_STRING']) ?></textarea>
