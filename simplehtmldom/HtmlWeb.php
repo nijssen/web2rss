@@ -97,7 +97,7 @@ class HtmlWeb {
 	/**
 	 * fopen implementation of load
 	 */
-	private function load_fopen($url)
+	function load_fopen($url)
 	{
 		// There is no guarantee this request will be fulfilled
 		$context = stream_context_create(array('http' => array(

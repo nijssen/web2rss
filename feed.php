@@ -2,10 +2,12 @@
 
 include_once 'simplehtmldom/simple_html_dom.php';
 include_once 'simplehtmldom/HtmlWeb.php';
+include_once 'functions.php';
 
 //$doc = file_get_html($_GET['url']);
 $n = new simplehtmldom\HtmlWeb();
 $doc = $n->load($_GET['url']);
+//$doc = $n->load_fopen($_GET['url']);
 
 // setup feed output
 $rss = new SimpleXMLElement('<rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/"></rss>');
@@ -13,29 +15,34 @@ $rss->addAttribute('version', '2.0');
 
 $channel = $rss->addChild('channel');
 
-$rss->addChild('title', strip_tags($doc->find("title", 0)) ?? "Feed");
-//$rss->addChild('description', 'description line goes here');
-$rss->addChild('link', $_GET['url']);
-//$rss->addChild('language', 'en-us');
+$channel->addChild('title', strip_tags($doc->find("title", 0)) ?? "Feed");
+$channel->addChild('link', $_GET['url']);
+
+// remove scripts
+foreach ($doc->find("script") as $el) $el->remove();
+$scriptattrs = [
+    "onload", "onunload", "onclick", "ondblclick", "onmousedown", "onmouseup",
+    "onmouseover", "onmousemove", "onmouseout", "onfocus", "onblur", "onkeypress",
+    "onkeydown", "onkeyup", "onsubmit", "onreset", "onselect", "onchange"
+];
+$scriptattrstr = implode(", ", array_map(function ($x) { return "*[$x]"; }, $scriptattrs));
+foreach ($doc->find($scriptattrstr) as $el) {
+    $el->attrs = array_diff_key($el->attrs, array_flip($scriptattrs));
+}
 
 // find container element
-//$tmp = array();
 foreach ($doc->find($_GET['containersel']) as $container) {
-    $item = $rss->addChild('item');
-    
-    $guidstr = "";
+    $item = $channel->addChild('item');
     
     // find title
     $title = $container->find($_GET['titlesel'], 0);
     $titlestr = $title != null ? htmlentities(strip_tags($title->innertext)) : "No title";
     $item->addChild('title', $titlestr);
-    $guidstr .= $titlestr;
     
     // find link
     if ($title) {
         $link = $title->hasAttribute("href") ? $title : $title->find("a", 0);
         $actualurl = convertRelativeToAbsolutePath($_GET['url'], $link->getAttribute("href") ?? $_GET['url']);
-        $guidstr .= $actualurl;
         $item->addChild('link', $actualurl);
         $title->remove();
         $link->remove();
@@ -48,7 +55,6 @@ foreach ($doc->find($_GET['containersel']) as $container) {
     if ($date) {
         $dateval = date_create_from_format($_GET['datefmt'], strip_tags($date->innertext));
         $date_rfc = gmdate(DATE_RFC2822, $dateval->getTimestamp());
-        $guidstr .= $date_rfc;
         $item->addChild('pubDate', $date_rfc);
         $date->remove();
     }
@@ -72,74 +78,29 @@ foreach ($doc->find($_GET['containersel']) as $container) {
         $contentstr = htmlentities($container->innertext);
     }
     $item->addChild('description', $contentstr);
-    //$guidstr .= $contentstr;
     
     // create guid
-    //$guid = $item->addChild('guid', sha1($guidstr));
     $guid = $item->addChild('guid', sha1($item->asXML()));
     $guid->addAttribute('isPermaLink', 'false');
-    //$tmp[] = $guidstr;
 }
 
+unset($doc);
 
-header('Content-Type: text/xml; charset=utf-8', true);
-echo $rss->asXML();
-
-//echo '<!--';
-//var_dump($tmp);
-//echo '-->';
-
-function convertRelativeToAbsolutePath($currentUrl, $relativePath) {
-	// Converts a relative path to an absolute path given the retrieve URL and a relative path, e.g.
-	// $currentUrl = 'http://www.example.com/direcctory/asdf/page.html'
-	// $relativePath = '../images/favicon.png'
-	
-	// If less than length of http://, this isn't a valid $currentUrl
-	if (strlen($currentUrl) < 8) {
-		return false;
-	}
-	
-	// If absolute already, return
-	$p = parse_url($relativePath);
-	if (isset($p["scheme"])) {
-		return $relativePath;
-	}
-
-	// Otherwise, let's build a URL
-
-	// Get base path https://example.com
-	$thirdSlashPosition = strpos($currentUrl, '/', 8);
-	if ($thirdSlashPosition) {
-		$basePath = substr($currentUrl, 0, $thirdSlashPosition);
-	} else {	// Just a domain
-		$basePath = $currentUrl;
-	}
-
-	if ($relativePath[0] == '/') {
-		// Relative absolute
-		// Append relative path to everything up to the third slash in $currentURL
-		return $basePath.$relativePath;
-	} else {
-		// Fully relative path
-
-		$path = '';
-
-		// Strip all parent and this folder dots (.. and .)
-		$relParts = explode("/", $relativePath);
-		foreach($relParts as $i => $part) {
-			if ($part == '.') {
-				$relParts[$i] = null;
-			}
-			if ($part == '..') {
-				$relParts[$i - 1] = null;
-				$relParts[$i] = null;
-			}
-		}
-
-		// Remove empty values
-		$relParts = array_filter($relParts);
-
-		// Reassemble string
-		return $basePath.'/'.implode("/", $relParts);
-	}
+if (isset($_GET['preview'])) {
+    // setup XSL
+    $xsl = new XSLTProcessor;
+    $xsl->registerPHPFunctions();
+    $xsldoc = new DomDocument();
+    $xsldoc->load("rss2html.xsl");
+    $xsl->importStyleSheet($xsldoc);
+    
+    // convert rss to DOM
+    //$xmldoc = new DomDocument();
+    //$xmldoc->appendChild($xmldoc->importNode(dom_import_simplexml($rss), true));
+    
+    // transform
+    echo $xsl->transformToXml(dom_import_simplexml($rss));
+} else {
+    header('Content-Type: text/xml; charset=utf-8', true);
+    echo $rss->asXML();
 }
