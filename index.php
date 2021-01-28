@@ -25,7 +25,7 @@ include 'functions.php';
 <input type="button" id="addremovesel" value="add a removal selector"><br>
 <br>
 <input type="submit" value="Apply"><br>
-<textarea rows="2" cols="80" readonly><?= htmlspecialchars(absurl("feed.php?" . $_SERVER['QUERY_STRING'])) ?></textarea>
+<textarea rows="2" cols="80" readonly><?= htmlspecialchars(absurl("feed.php") . '?' . $_SERVER['QUERY_STRING']) ?></textarea>
 <!-- <input type="button" value="Preview" id="previewbtn"> -->
 </form>
 <iframe id="previewframe" style="width: 100%; height: 50%;" src="feed.php?preview=1&amp;<?= htmlspecialchars($_SERVER['QUERY_STRING'] ?? '') ?>"></iframe>

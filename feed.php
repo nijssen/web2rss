@@ -42,7 +42,7 @@ foreach ($doc->find($_GET['containersel']) as $container) {
     // find link
     if ($title) {
         $link = $title->hasAttribute("href") ? $title : $title->find("a", 0);
-        $actualurl = convertRelativeToAbsolutePath($_GET['url'], $link->getAttribute("href") ?? $_GET['url']);
+        $actualurl = getAbsoluteUrl($_GET['url'], $link->getAttribute("href") ?? $_GET['url']);
         $item->addChild('link', $actualurl);
         $title->remove();
         $link->remove();

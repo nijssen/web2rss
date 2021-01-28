@@ -1,61 +1,70 @@
 <?php
 
-function convertRelativeToAbsolutePath($currentUrl, $relativePath) {
-	// Converts a relative path to an absolute path given the retrieve URL and a relative path, e.g.
-	// $currentUrl = 'http://www.example.com/direcctory/asdf/page.html'
-	// $relativePath = '../images/favicon.png'
-	
-	// If less than length of http://, this isn't a valid $currentUrl
-	if (strlen($currentUrl) < 8) {
-		return false;
-	}
-	
-	// If absolute already, return
-	$p = parse_url($relativePath);
-	if (isset($p["scheme"])) {
-		return $relativePath;
-	}
+function getAbsoluteUrl($baseUrl, $relativeUrl){
 
-	// Otherwise, let's build a URL
+    // if already absolute URL 
+    if (parse_url($relativeUrl, PHP_URL_SCHEME) !== null){
+        return $relativeUrl;
+    }
 
-	// Get base path https://example.com
-	$thirdSlashPosition = strpos($currentUrl, '/', 8);
-	if ($thirdSlashPosition) {
-		$basePath = substr($currentUrl, 0, $thirdSlashPosition);
-	} else {	// Just a domain
-		$basePath = $currentUrl;
-	}
+    // queries and anchors
+    if ($relativeUrl[0] === '#' || $relativeUrl[0] === '?'){
+        return $baseUrl.$relativeUrl;
+    }
 
-	if ($relativePath[0] == '/') {
-		// Relative absolute
-		// Append relative path to everything up to the third slash in $currentURL
-		return $basePath.$relativePath;
-	} else {
-		// Fully relative path
+    // parse base URL and convert to: $scheme, $host, $path, $query, $port, $user, $pass
+    extract(parse_url($baseUrl));
 
-		$path = '';
+    // if base URL contains a path remove non-directory elements from $path
+    if (isset($path) === true){
+        $path = preg_replace('#/[^/]*$#', '', $path);
+    }
+    else {
+        $path = '';
+    }
 
-		// Strip all parent and this folder dots (.. and .)
-		$relParts = explode("/", $relativePath);
-		foreach($relParts as $i => $part) {
-			if ($part == '.') {
-				$relParts[$i] = null;
-			}
-			if ($part == '..') {
-				$relParts[$i - 1] = null;
-				$relParts[$i] = null;
-			}
-		}
+    // if realtive URL starts with //
+    if (substr($relativeUrl, 0, 2) === '//'){
+        return $scheme.':'.$relativeUrl;
+    }
 
-		// Remove empty values
-		$relParts = array_filter($relParts);
+    // if realtive URL starts with /
+    if ($relativeUrl[0] === '/'){
+        $path = null;
+    }
 
-		// Reassemble string
-		return $basePath.'/'.implode("/", $relParts);
-	}
+    $abs = null;
+
+    // if realtive URL contains a user
+    if (isset($user) === true){
+        $abs .= $user;
+
+        // if realtive URL contains a password
+        if (isset($pass) === true){
+            $abs .= ':'.$pass;
+        }
+
+        $abs .= '@';
+    }
+
+    $abs .= $host;
+
+    // if realtive URL contains a port
+    if (isset($port) === true){
+        $abs .= ':'.$port;
+    }
+
+    $abs .= $path.'/'.$relativeUrl.(isset($query) === true ? '?'.$query : null);
+
+    // replace // or /./ or /foo/../ with /
+    $re = ['#(/\.?/)#', '#/(?!\.\.)[^/]+/\.\./#'];
+    for ($n = 1; $n > 0; $abs = preg_replace($re, '/', $abs, -1, $n)) {
+    }
+
+    // return absolute URL
+    return $scheme.'://'.$abs;
+
 }
-
-
 
 function absurl($path) {
     $isHttps = ((array_key_exists('HTTPS', $_SERVER) 
@@ -63,6 +72,7 @@ function absurl($path) {
         (array_key_exists('HTTP_X_FORWARDED_PROTO', $_SERVER) 
                 && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')
     );
-    $thisurl = 'http' . ($isHttps ? 's' : '') .'://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
-    return convertRelativeToAbsolutePath($thisurl, $path);
+    $thisurl = 'http' . ($isHttps ? 's' : '') . '://' . $_SERVER['SERVER_NAME'] .  $_SERVER['SCRIPT_NAME'];
+    return getAbsoluteUrl($thisurl, $path);
+    //return convertRelativeToAbsolutePath($_SERVER['PHP_SELF'], $path);
 }
