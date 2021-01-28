@@ -4,7 +4,7 @@ include_once 'simplehtmldom/simple_html_dom.php';
 include_once 'simplehtmldom/HtmlWeb.php';
 include_once 'functions.php';
 
-session_set_cookie_params(array("path" => absurl("./")));
+session_set_cookie_params(array("path" => dirname($_SERVER['PHP_SELF']) . '/'));
 session_start();
 
 if (!isset($_REQUEST['url'])) die("need url");
