@@ -15,7 +15,7 @@ $rss->addAttribute('version', '2.0');
 
 $channel = $rss->addChild('channel');
 
-$channel->addChild('title', strip_tags($doc->find("title", 0)) ?? "Feed");
+$channel->addChild('title', htmlentities2(strip_tags($doc->find("title", 0))) ?? "Feed");
 $channel->addChild('link', $_GET['url']);
 
 // remove scripts
@@ -36,24 +36,28 @@ foreach ($doc->find($_GET['containersel']) as $container) {
     
     // find title
     $title = $container->find($_GET['titlesel'], 0);
-    $titlestr = $title != null ? htmlentities(strip_tags($title->innertext)) : "No title";
+    $titlestr = $title != null ? htmlentities2(strip_tags($title->innertext)) : "No title";
     $item->addChild('title', $titlestr);
     
     // find link
     if ($title) {
         $link = $title->hasAttribute("href") ? $title : $title->find("a", 0);
-        $actualurl = getAbsoluteUrl($_GET['url'], $link->getAttribute("href") ?? $_GET['url']);
-        $item->addChild('link', $actualurl);
+        if ($link != null && $link->hasAttribute("href")) {
+            $actualurl = getAbsoluteUrl($_GET['url'], $link->getAttribute("href"));
+        } else {
+            $actualurl = $_GET['url'];
+        }
         $title->remove();
         $link->remove();
     } else {
-        $item->addChild('link', $_GET['url']);
+        $actualurl = $_GET['url'];
     }
+    $item->addChild('link', htmlentities2($actualurl));
     
     // find date
     $date = $container->find($_GET['datesel'], 0);
     if ($date) {
-        $dateval = date_create_from_format($_GET['datefmt'], strip_tags($date->innertext));
+        $dateval = date_create_from_format($_GET['datefmt'], trim(strip_tags($date->innertext)));
         $date_rfc = gmdate(DATE_RFC2822, $dateval->getTimestamp());
         $item->addChild('pubDate', $date_rfc);
         $date->remove();
@@ -72,12 +76,13 @@ foreach ($doc->find($_GET['containersel']) as $container) {
     $contentstr = "";
     if (isset($_GET['contentsel']) && !empty($_GET['contentsel'])) {
         foreach ($container->find($_GET['contentsel']) as $el) {
-            $contentstr .= htmlentities($el->outertext);
+            $contentstr .= $el->outertext;
         }
     } else {
-        $contentstr = htmlentities($container->innertext);
+        $contentstr = $container->innertext;
     }
-    $item->addChild('description', $contentstr);
+    
+    $item->addChild('description', htmlentities2($contentstr));
     
     // create guid
     $guid = $item->addChild('guid', sha1($item->asXML()));
@@ -85,6 +90,9 @@ foreach ($doc->find($_GET['containersel']) as $container) {
 }
 
 unset($doc);
+
+$xmldoc = new DomDocument("1.0", "UTF-8");
+$xmldoc->appendChild($xmldoc->importNode(dom_import_simplexml($rss), true));
 
 if (isset($_GET['preview'])) {
     // setup XSL
@@ -99,8 +107,15 @@ if (isset($_GET['preview'])) {
     //$xmldoc->appendChild($xmldoc->importNode(dom_import_simplexml($rss), true));
     
     // transform
-    echo $xsl->transformToXml(dom_import_simplexml($rss));
+    //echo $xsl->transformToXml($rss);
+    echo $xsl->transformToXml($xmldoc);
 } else {
     header('Content-Type: text/xml; charset=utf-8', true);
-    echo $rss->asXML();
+    //echo $rss->asXML();
+    echo $xmldoc->saveXML();
+}
+
+
+function htmlentities2($text) {
+    return htmlentities($text, ENT_XML1 | ENT_DISALLOWED, "UTF-8");
 }

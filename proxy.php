@@ -21,7 +21,7 @@ if (!isset($_REQUEST['forcerefresh']) && isset($_SESSION[$url])) {
 }
 
 // figure out what to show
-if (isset($_REQUEST['containersel'])) {
+if (isset($_REQUEST['containersel']) && !empty($_REQUEST['containersel'])) {
     $root = $doc->find($_REQUEST['containersel'], 0);
     if (!$root) die("can't find that selector");
 } else {
