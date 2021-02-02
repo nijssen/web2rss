@@ -63,7 +63,11 @@ $doc->root->find("head", 0)->appendChild($styleel);
 foreach ($doc->find("base") as $el) $el->remove(); // remove existing if any
 $baseel = $doc->createElement("base");
 $baseel->setAttribute("href", $url);
-$doc->root->find("head", 0)->appendChild($baseel);
+$headel = $doc->root->find("head", 0);
+$headel->appendChild($baseel);
+// need to make this element the first in the <head>
+array_unshift($headel->children, array_pop($headel->children));
+array_unshift($headel->nodes, array_pop($headel->nodes));
 
 // output document
 echo $root->innertext . PHP_EOL;
