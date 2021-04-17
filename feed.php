@@ -47,8 +47,6 @@ foreach ($doc->find($_GET['containersel']) as $container) {
         } else {
             $actualurl = $_GET['url'];
         }
-        $title->remove();
-        $link->remove();
     } else {
         $actualurl = $_GET['url'];
     }
@@ -57,11 +55,24 @@ foreach ($doc->find($_GET['containersel']) as $container) {
     // find date
     $date = $container->find($_GET['datesel'], 0);
     if ($date) {
-        $dateval = date_create_from_format($_GET['datefmt'], trim(strip_tags($date->innertext)));
+        if ($date->tag == "time" && $date->hasAttribute("datetime")) {
+            $datestr = $date->getAttribute("datetime");
+        } else {
+            $datestr = trim(strip_tags($date->innertext));
+        }
+        $dateval = date_create_from_format($_GET['datefmt'], $datestr);
+        $maybe_error = date_get_last_errors();
+        if ($maybe_error && $maybe_error['error_count'] > 0) {
+            print_r($maybe_error);
+            die();
+        }
         $date_rfc = gmdate(DATE_RFC2822, $dateval->getTimestamp());
         $item->addChild('pubDate', $date_rfc);
-        $date->remove();
     }
+    
+    if ($title) $title->remove();
+    if ($link) $link->remove();
+    if ($date) $date->remove();
     
     // remove other things we want gone
     if (isset($_GET['removesel']) && is_array($_GET['removesel'])) {
