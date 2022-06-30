@@ -19,6 +19,7 @@ include 'functions.php';
 <label>Date: <input type="text" name="datesel" value="<?= htmlspecialchars($_GET['datesel'] ?? '') ?>" class="selector"></label>&nbsp;&nbsp;
 <label><a href="https://www.php.net/manual/en/datetime.createfromformat.php" target="_blank" title="PHP date format">Date format</a>: <input type="text" name="datefmt" value="<?= htmlspecialchars($_GET['datefmt'] ?? '') ?>"></label><br>
 <label>Content: <input type="text" name="contentsel" value="<?= htmlspecialchars($_GET['contentsel'] ?? '') ?>" class="selector"></label> (blank for everything else)<br>
+<label><input type="checkbox" name="usefirstlink" <?= isset($_GET['usefirstlink']) ? "checked" : "" ?> /> Use first &lt;a&gt; as the link</label><br>
 <div id="removesels">
 <?php if (isset($_GET['removesel']) && is_array($_GET['removesel'])) { foreach ($_GET['removesel'] as $rs) { ?>
 <label class="removesel-label">Remove this: <input type="text" name="removesel[]" value="<?= htmlspecialchars($rs) ?>" class="selector removesel"></label> <input type="button" class="delremovesel" value="x"><br>
@@ -32,7 +33,8 @@ include 'functions.php';
 </form>
 
 <?php if (isset($_GET['containersel']) && isset($_GET['url']) && !empty($_GET['containersel'])) { ?>
-<label>RSS link: <textarea rows="2" cols="80" readonly><?= htmlspecialchars(absurl("feed.php") . '?' . $_SERVER['QUERY_STRING']) ?></textarea></label>
+<!--<label>RSS link: <textarea rows="2" cols="80" readonly><?= htmlspecialchars(absurl("feed.php") . '?' . $_SERVER['QUERY_STRING']) ?></textarea></label> -->
+<p><a href="<?= htmlspecialchars(absurl("feed.php") . '?' . $_SERVER['QUERY_STRING']) ?>" style="font-size: 150%;">RSS link</a></p>
 
 <h2>RSS feed preview</h2>
 <iframe id="previewframe" style="width: 100%; height: 50%;" src="feed.php?preview=1&amp;<?= htmlspecialchars($_SERVER['QUERY_STRING'] ?? '') ?>"></iframe>

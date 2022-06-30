@@ -7,13 +7,18 @@ function getAbsoluteUrl($baseUrl, $relativeUrl){
         return $relativeUrl;
     }
 
-    // queries and anchors
-    if ($relativeUrl[0] === '#' || $relativeUrl[0] === '?'){
-        return $baseUrl.$relativeUrl;
-    }
-
     // parse base URL and convert to: $scheme, $host, $path, $query, $port, $user, $pass
-    extract(parse_url($baseUrl));
+    $url_parts = parse_url($baseUrl);
+    extract($url_parts);
+    
+    // queries and anchors
+    if ($relativeUrl[0] === '?'){
+        $url_parts['query'] = substr($relativeUrl, 1);
+        return unparse_url($url_parts);
+    } else if ($relativeUrl[0] === '#') {
+        $url_parts['fragment'] = substr($relativeUrl, 1);
+        return unparse_url($url_parts);
+    }
 
     // if base URL contains a path remove non-directory elements from $path
     if (isset($path) === true){
@@ -75,4 +80,18 @@ function absurl($path) {
     $thisurl = 'http' . ($isHttps ? 's' : '') . '://' . $_SERVER['SERVER_NAME'] .  $_SERVER['SCRIPT_NAME'];
     return getAbsoluteUrl($thisurl, $path);
     //return convertRelativeToAbsolutePath($_SERVER['PHP_SELF'], $path);
+}
+
+// https://www.php.net/manual/en/function.parse-url.php#106731
+function unparse_url($parsed_url) {
+  $scheme   = isset($parsed_url['scheme']) ? $parsed_url['scheme'] . '://' : '';
+  $host     = isset($parsed_url['host']) ? $parsed_url['host'] : '';
+  $port     = isset($parsed_url['port']) ? ':' . $parsed_url['port'] : '';
+  $user     = isset($parsed_url['user']) ? $parsed_url['user'] : '';
+  $pass     = isset($parsed_url['pass']) ? ':' . $parsed_url['pass']  : '';
+  $pass     = ($user || $pass) ? "$pass@" : '';
+  $path     = isset($parsed_url['path']) ? $parsed_url['path'] : '';
+  $query    = isset($parsed_url['query']) ? '?' . $parsed_url['query'] : '';
+  $fragment = isset($parsed_url['fragment']) ? '#' . $parsed_url['fragment'] : '';
+  return "$scheme$user$pass$host$port$path$query$fragment";
 }

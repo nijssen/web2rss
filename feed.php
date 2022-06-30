@@ -27,12 +27,22 @@ $scriptattrs = [
 ];
 $scriptattrstr = implode(", ", array_map(function ($x) { return "*[$x]"; }, $scriptattrs));
 foreach ($doc->find($scriptattrstr) as $el) {
-    $el->attrs = array_diff_key($el->attrs, array_flip($scriptattrs));
+    if ($el->attrs)
+        $el->attrs = array_diff_key($el->attrs, array_flip($scriptattrs));
 }
 
 // find container element
 foreach ($doc->find($_GET['containersel']) as $container) {
     $item = $channel->addChild('item');
+    
+    // make links and image sources absolute
+    foreach ($container->find("a, img") as $el) {
+        foreach (["href", "src"] as $attr) {
+            if ($el->hasAttribute($attr)) {
+                $el->setAttribute($attr, getAbsoluteUrl($_GET['url'], $el->getAttribute($attr)));
+            }
+        }
+    }
     
     // find title
     $title = $container->find($_GET['titlesel'], 0);
@@ -41,9 +51,17 @@ foreach ($doc->find($_GET['containersel']) as $container) {
     
     // find link
     if ($title) {
-        $link = $title->hasAttribute("href") ? $title : $title->find("a", 0);
+        if ($title->hasAttribute("href")) {
+            $link = $title;
+        } else if ($_GET['usefirstlink']) {
+            $link = $container->find("a", 0);
+        } else {
+            $link = $title->find("a", 0);
+        }
+        
         if ($link != null && $link->hasAttribute("href")) {
-            $actualurl = getAbsoluteUrl($_GET['url'], $link->getAttribute("href"));
+            //$actualurl = getAbsoluteUrl($_GET['url'], $link->getAttribute("href"));
+            $actualurl = $link->getAttribute("href");
         } else {
             $actualurl = $_GET['url'];
         }

@@ -41,6 +41,15 @@ if (isset($_REQUEST['removestyles'])) {
     foreach ($doc->find('link[rel="stylesheet"]') as $el) $el->remove();
 }
 
+// make links and image sources absolute
+foreach ($doc->find("a, img") as $el) {
+    foreach (["href", "src"] as $attr) {
+        if ($el->hasAttribute($attr)) {
+            $el->setAttribute($attr, getAbsoluteUrl($_GET['url'], $el->getAttribute($attr)));
+        }
+    }
+}
+
 // insert the scripts
 /*
 foreach (["https://code.jquery.com/jquery.min.js", absurl("proxystuff.js")] as $sc) {
